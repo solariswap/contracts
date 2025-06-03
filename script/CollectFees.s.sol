@@ -23,6 +23,7 @@ contract CollectFeesScript is Script {
 
         console.log("Liquidity Deposited:", uint256(liquidity));
 
+        console.log(IERC20(0xD4949664cD82660AaE99bEdc034a0deA8A0bd517).balanceOf(msg.sender));
         solariSwap.posm().collect(INonfungiblePositionManager.CollectParams({
             tokenId: tokenId,
             recipient: msg.sender,

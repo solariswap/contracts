@@ -12,18 +12,9 @@ contract SolariSwap {
     INonfungiblePositionManager public immutable posm;
     IUniswapV3Factory public immutable factory;
 
-    /// @notice Represents the deposit of an NFT
-    struct Deposit {
-        address owner;
-        uint128 liquidity;
-        address token0;
-        address token1;
-    }
-
-    mapping(uint256 => Deposit) public deposits;  // deposit info by NFT tokenId
-
     event PoolCreated(address indexed token0, address indexed token1, uint24 fee, address pool, uint160 initialPrice);
-    event LiquidityAdded(address indexed provider, uint256 indexed tokenId, uint128 liquidity);
+    event LiquidityMinted(address indexed provider, uint256 indexed tokenId, uint128 liquidity);
+    event PositionWithdrawn(uint256 indexed tokenId, address indexed owner);
 
     constructor(address _posm, address _factory) {
         posm = INonfungiblePositionManager(_posm);
@@ -54,7 +45,22 @@ contract SolariSwap {
         emit PoolCreated(sToken0, sToken1, plFee, poolAddress, sqrtPriceX96);
     }
 
+    /// @notice Adds liquidity to a Uniswap V3 position and mints an NFT representing the position
+    /// @dev Tokens must be provided in sorted order (tokenA < tokenB)
+    /// @dev Caller must approve this contract to spend their tokens
+    /// @param tokenA The first token of the pair (must be lower address than tokenB)
+    /// @param tokenB The second token of the pair (must be higher address than tokenA)
+    /// @param plFee The fee tier of the pool
+    /// @param amount0 The desired amount of tokenA to add as liquidity
+    /// @param amount0Min The minimum amount of tokenA to add as liquidity
+    /// @param amount1Min The minimum amount of tokenB to add as liquidity
+    /// @param amount1 The desired amount of tokenB to add as liquidity
+    /// @param tickLower The lower tick of the position's price range
+    /// @param tickUpper The upper tick of the position's price range
+    /// @return tokenId The ID of the NFT representing the minted position
     function mintLiquidity(address token0, address token1, uint24 plFee, uint256 amount0, uint256 amount0Min, uint256 amount1Min, uint256 amount1, int24 tickLower, int24 tickUpper) external returns (uint256) {
+        require(tickLower < tickUpper, "Invalid ticks");
+
         (address sToken0, address sToken1) = _sortTokens(token0, token1);
 
         require(IERC20(sToken0).transferFrom(msg.sender, address(this), amount0), "Transfer token0 failed");
@@ -79,13 +85,6 @@ contract SolariSwap {
 
         (uint256 tokenId, uint128 liquidity, uint256 amount0Used, uint256 amount1Used) = posm.mint(params);
 
-        deposits[tokenId] = Deposit({
-            owner: msg.sender,
-            liquidity: liquidity,
-            token0: sToken0,
-            token1: sToken1
-        });
-
         // Remove allowance and refund in both assets.
         if (amount0Used < amount0) {
             TransferHelper.safeApprove(sToken0, address(posm), 0);
@@ -99,36 +98,24 @@ contract SolariSwap {
             TransferHelper.safeTransfer(sToken1, msg.sender, refund1);
         }
 
-        emit LiquidityAdded(msg.sender, tokenId, liquidity);
+        emit LiquidityMinted(msg.sender, tokenId, liquidity);
 
         return tokenId;
     }
 
-    function increaseLiquidity(uint256 tokenId, uint256 amountAdd0, uint256 amountAdd1, uint256 amount0Min, uint256 amount1Min)
-        external
-        returns (
-            uint128 liquidity,
-            uint256 amount0,
-            uint256 amount1
-        )
-    {
-        INonfungiblePositionManager.IncreaseLiquidityParams memory params =
-            INonfungiblePositionManager.IncreaseLiquidityParams({
-                tokenId: tokenId,
-                amount0Desired: amountAdd0,
-                amount1Desired: amountAdd1,
-                amount0Min: amount0Min,
-                amount1Min: amount1Min,
-                deadline: block.timestamp
-            });
+    /// @notice Removes all liquidity from a position and collects accumulated fees
+    /// @dev Only the position owner can withdraw
+    /// @param tokenId The ID of the position NFT
+    /// @param amount0Min The minimum amount of token0 to receive
+    /// @param amount1Min The minimum amount of token1 to receive
+    function withdrawPosition(uint256 tokenId, uint256 amount0Min, uint256 amount1Min) external {
+        // Check ownership using NFT's ownerOf function
+        require(posm.ownerOf(tokenId) == msg.sender, "Not position owner");
 
-        (liquidity, amount0, amount1) = posm.increaseLiquidity(params);
-    }
+        // Get position information directly from the NFT
+        (,,,,,,,uint128 liquidity,,,,) = posm.positions(tokenId);
 
-    function decreaseLiquidity(uint256 tokenId, uint128 liquidity, uint256 amount0Min, uint256 amount1Min) external returns (uint256 amount0, uint256 amount1) {
-        Deposit storage deposit = deposits[tokenId];
-        require(deposit.owner == msg.sender, "Not deposit owner");
-        require(liquidity > 0 && liquidity <= deposit.liquidity, "Invalid liquidity");
+        require(liquidity > 0, "No liquidity to withdraw");
 
         INonfungiblePositionManager.DecreaseLiquidityParams memory params =
             INonfungiblePositionManager.DecreaseLiquidityParams({
@@ -141,35 +128,18 @@ contract SolariSwap {
 
         posm.decreaseLiquidity(params);
 
-        (amount0, amount1) = posm.collect(
+        INonfungiblePositionManager.CollectParams memory collectParams =
             INonfungiblePositionManager.CollectParams({
                 tokenId: tokenId,
-                recipient: address(this),
+                recipient: msg.sender,
                 amount0Max: type(uint128).max,
                 amount1Max: type(uint128).max
-            })
-        );
+            });
 
-        _sendToOwner(tokenId, amount0, amount1);
-    }
+        (uint256 amount0, uint256 amount1) = posm.collect(collectParams);
 
-    /// @notice Transfers funds to owner of NFT
-    /// @param tokenId The id of the erc721
-    /// @param amount0 The amount of token0
-    /// @param amount1 The amount of token1
-    function _sendToOwner(
-        uint256 tokenId,
-        uint256 amount0,
-        uint256 amount1
-    ) internal {
-        // get owner of contract
-        address owner = deposits[tokenId].owner;
 
-        address token0 = deposits[tokenId].token0;
-        address token1 = deposits[tokenId].token1;
-        // send collected fees to owner
-        TransferHelper.safeTransfer(token0, owner, amount0);
-        TransferHelper.safeTransfer(token1, owner, amount1);
+    emit PositionWithdrawn(tokenId, msg.sender);
     }
 
     function _sortTokens(address token0, address token1) internal pure returns (address, address) {
