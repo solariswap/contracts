@@ -29,3 +29,6 @@ collect-fees:
 
 swap:
     forge script --broadcast script/Swap.s.sol:SwapScript --private-key $PRIVATE_KEY --rpc-url $RPC_URL
+
+token-info:
+    forge script --broadcast script/GetToken.sol:GetToken --private-key $PRIVATE_KEY --rpc-url $RPC_URL

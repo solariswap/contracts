@@ -19,17 +19,18 @@ contract CollectFeesScript is Script {
         uint256 tokenId = solariSwap.posm().tokenOfOwnerByIndex(msg.sender, 0);
         console.log("tokenId", tokenId);
 
-        (, uint128 liquidity, ,) = solariSwap.deposits(tokenId);
+//        (, uint128 liquidity, ,) = solariSwap.deposits(tokenId);
 
-        console.log("Liquidity Deposited:", uint256(liquidity));
-
-        console.log(IERC20(0xD4949664cD82660AaE99bEdc034a0deA8A0bd517).balanceOf(msg.sender));
-        solariSwap.posm().collect(INonfungiblePositionManager.CollectParams({
-            tokenId: tokenId,
-            recipient: msg.sender,
-            amount0Max: type(uint128).max,
-            amount1Max: type(uint128).max
-        }));
+        IERC20 token = IERC20(0x3CCd65D81d84eF4CB3175710b4c6D70ca5068E77);
+//        console.log("Liquidity Deposited:", uint256(liquidity));
+        console.log(token.name());
+//        console.log(IERC20(0xD4949664cD82660AaE99bEdc034a0deA8A0bd517).balanceOf(msg.sender));
+//        solariSwap.posm().collect(INonfungiblePositionManager.CollectParams({
+//            tokenId: tokenId,
+//            recipient: msg.sender,
+//            amount0Max: type(uint128).max,
+//            amount1Max: type(uint128).max
+//        }));
 
         vm.stopBroadcast();
     }

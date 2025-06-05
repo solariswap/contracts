@@ -48,8 +48,8 @@ contract SolariSwap {
     /// @notice Adds liquidity to a Uniswap V3 position and mints an NFT representing the position
     /// @dev Tokens must be provided in sorted order (tokenA < tokenB)
     /// @dev Caller must approve this contract to spend their tokens
-    /// @param tokenA The first token of the pair (must be lower address than tokenB)
-    /// @param tokenB The second token of the pair (must be higher address than tokenA)
+    /// @param token0 The first token of the pair (must be lower address than tokenB)
+    /// @param token1 The second token of the pair (must be higher address than tokenA)
     /// @param plFee The fee tier of the pool
     /// @param amount0 The desired amount of tokenA to add as liquidity
     /// @param amount0Min The minimum amount of tokenA to add as liquidity
@@ -101,45 +101,6 @@ contract SolariSwap {
         emit LiquidityMinted(msg.sender, tokenId, liquidity);
 
         return tokenId;
-    }
-
-    /// @notice Removes all liquidity from a position and collects accumulated fees
-    /// @dev Only the position owner can withdraw
-    /// @param tokenId The ID of the position NFT
-    /// @param amount0Min The minimum amount of token0 to receive
-    /// @param amount1Min The minimum amount of token1 to receive
-    function withdrawPosition(uint256 tokenId, uint256 amount0Min, uint256 amount1Min) external {
-        // Check ownership using NFT's ownerOf function
-        require(posm.ownerOf(tokenId) == msg.sender, "Not position owner");
-
-        // Get position information directly from the NFT
-        (,,,,,,,uint128 liquidity,,,,) = posm.positions(tokenId);
-
-        require(liquidity > 0, "No liquidity to withdraw");
-
-        INonfungiblePositionManager.DecreaseLiquidityParams memory params =
-            INonfungiblePositionManager.DecreaseLiquidityParams({
-                tokenId: tokenId,
-                liquidity: liquidity,
-                amount0Min: amount0Min,
-                amount1Min: amount1Min,
-                deadline: block.timestamp
-            });
-
-        posm.decreaseLiquidity(params);
-
-        INonfungiblePositionManager.CollectParams memory collectParams =
-            INonfungiblePositionManager.CollectParams({
-                tokenId: tokenId,
-                recipient: msg.sender,
-                amount0Max: type(uint128).max,
-                amount1Max: type(uint128).max
-            });
-
-        (uint256 amount0, uint256 amount1) = posm.collect(collectParams);
-
-
-    emit PositionWithdrawn(tokenId, msg.sender);
     }
 
     function _sortTokens(address token0, address token1) internal pure returns (address, address) {
