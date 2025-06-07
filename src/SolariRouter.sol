@@ -7,5 +7,5 @@ import {SwapRouter} from "v3-periphery/contracts/SwapRouter.sol";
 import 'v3-periphery/contracts/libraries/PoolAddress.sol';
 
 contract SolariRouter is SwapRouter {
-    constructor() SwapRouter(0xbaf4191798ebFc5AF135585cD7DEAE687612c510, 0x6e4dab0F87420B9D57544E6A842dAd96F26C0070) {}
+    constructor() SwapRouter(0xd60f84942Bf4380673ae9642a489955ee4aeCe38, 0xD4949664cD82660AaE99bEdc034a0deA8A0bd517) {}
 }
