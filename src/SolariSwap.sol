@@ -52,13 +52,13 @@ contract SolariSwap {
     /// @param token1 The second token of the pair (must be higher address than tokenA)
     /// @param plFee The fee tier of the pool
     /// @param amount0 The desired amount of tokenA to add as liquidity
+    /// @param amount1 The desired amount of tokenB to add as liquidity
     /// @param amount0Min The minimum amount of tokenA to add as liquidity
     /// @param amount1Min The minimum amount of tokenB to add as liquidity
-    /// @param amount1 The desired amount of tokenB to add as liquidity
     /// @param tickLower The lower tick of the position's price range
     /// @param tickUpper The upper tick of the position's price range
     /// @return tokenId The ID of the NFT representing the minted position
-    function mintLiquidity(address token0, address token1, uint24 plFee, uint256 amount0, uint256 amount0Min, uint256 amount1Min, uint256 amount1, int24 tickLower, int24 tickUpper) external returns (uint256) {
+    function mintLiquidity(address token0, address token1, uint24 plFee, uint256 amount0, uint256 amount1, uint256 amount0Min, uint256 amount1Min, int24 tickLower, int24 tickUpper) external returns (uint256) {
         require(tickLower < tickUpper, "Invalid ticks");
 
         (address sToken0, address sToken1) = _sortTokens(token0, token1);

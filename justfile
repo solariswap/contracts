@@ -32,3 +32,6 @@ swap:
 
 token-info:
     forge script --broadcast script/GetToken.sol:GetToken --private-key $PRIVATE_KEY --rpc-url $RPC_URL
+
+create-token:
+    forge script --broadcast script/CreateToken.s.sol:CreateTokenScript --private-key $PRIVATE_KEY --rpc-url $RPC_URL

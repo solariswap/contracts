@@ -14,45 +14,45 @@ contract SwapScript is Script {
 
     constructor(){
         router = ISwapRouter(0x4947CDB6d311F631242d051327190500Ee46f7C9);
-        quoter = IQuoterV2(0x38DfC353aDAFC24B68f13d2f5Bf9FDF6B0B82484);
+        quoter = IQuoterV2(0xE885c930B813C833c98E4f0987c8fcF2B845612B);
     }
 
     function run() external {
         address WHLS = vm.envAddress("WETH9_ADDRESS");
-        address TEST = 0x3CCd65D81d84eF4CB3175710b4c6D70ca5068E77;
+        address KRK = 0x7419C891CCC5a19ab4c6A836E2b1536e25DFbb27;
 
         uint24 plFee = 3000;
 
         uint256 amountIn = 10e18;
 
         vm.startBroadcast();
-//        (uint256 amountOut, , ,) = quoter.quoteExactInputSingle(IQuoterV2.QuoteExactInputSingleParams({
-//            tokenIn: TEST,
-//            tokenOut: WHLS,
-//            fee: plFee,
-//            amountIn: amountIn,
-//            sqrtPriceLimitX96: 0
-//        }));
+        (uint256 amountOut, , ,) = quoter.quoteExactInputSingle(IQuoterV2.QuoteExactInputSingleParams({
+            tokenIn: WHLS,
+            tokenOut: KRK,
+            fee: plFee,
+            amountIn: amountIn,
+            sqrtPriceLimitX96: 0
+        }));
 
-//        console.log("Amount Out", amountOut);
+        console.log("Amount Out", amountOut);
 
-        TransferHelper.safeApprove(TEST, address(router), amountIn);
+//        TransferHelper.safeApprove(TEST, address(router), amountIn);
 
-        ISwapRouter.ExactInputSingleParams memory params =
-            ISwapRouter.ExactInputSingleParams({
-                tokenIn: TEST,
-                tokenOut: WHLS,
-                fee: plFee,
-                recipient: msg.sender,
-                deadline: block.timestamp + 60,
-                amountIn: amountIn,
-                amountOutMinimum: 0,
-                sqrtPriceLimitX96: 0
-            });
+//        ISwapRouter.ExactInputSingleParams memory params =
+//            ISwapRouter.ExactInputSingleParams({
+//                tokenIn: TEST,
+//                tokenOut: WHLS,
+//                fee: plFee,
+//                recipient: msg.sender,
+//                deadline: block.timestamp + 60,
+//                amountIn: amountIn,
+//                amountOutMinimum: 0,
+//                sqrtPriceLimitX96: 0
+//            });
 
-        uint256 amountOut = router.exactInputSingle(params);
-        console.log("amountIn", amountIn);
-        console.log("AmountOut", amountOut);
+//        uint256 amountOut = router.exactInputSingle(params);
+//        console.log("amountIn", amountIn);
+//        console.log("AmountOut", amountOut);
         vm.stopBroadcast();
     }
 }
